@@ -29,7 +29,7 @@ Scalar signal(const float t) {
 
 int main() {
     const size_t num_bits = 8;
-    const size_t disc_freq = 20;
+    const size_t disc_freq = 50;
     const size_t time_frame = 1;
 
     /*
@@ -55,7 +55,7 @@ int main() {
 
     Scalar a_min = *std::min_element(x_t.begin(), x_t.end());
     Scalar a_max = *std::max_element(x_t.begin(), x_t.end());
-    Scalar scale_quant = (a_max - a_min) / ((2 << num_bits) - 1);
+    Scalar scale_quant = (a_max - a_min) / ((2 << (num_bits - 1)) - 1);
     for (auto x : x_t) {
         y_t.push_back(std::round((x - a_min) / scale_quant));
     }
@@ -66,12 +66,13 @@ int main() {
 
     std::vector<Scalar> y_b;
     for (auto y : y_t) {
-        std::bitset<num_bits> bitset = y;
+        std::bitset<num_bits> bitset(y);
         auto bitset_str = bitset.to_string();
+        std::cout << y << " ";
         for (auto b : bitset_str) {
             y_b.push_back(strtod(&b, nullptr));
         }
-    }
+    } std::cout << std::endl;
 
     /*
      * Закоидруем физический уровень используя бинарное кодирование
@@ -104,12 +105,12 @@ int main() {
 
     std::vector<Scalar> y_b_decoded;
     for (size_t i = 0; i < y_t.size(); i++) {
-        std::string binary_repr = "";
+        Scalar binary_repr = 0;
         for (size_t j = i * num_bits; j < (i + 1) * num_bits; j++) {
-            binary_repr += std::to_string( (size_t) (y_b[j]));
+            binary_repr += y_b[j] * (2 << (num_bits - j % num_bits - 2));
         }
-        std::bitset<num_bits> bitset(binary_repr);
-        y_b_decoded.push_back((Scalar) (bitset.to_ulong()));
+        std::cout << binary_repr << " ";
+        y_b_decoded.push_back(binary_repr);
     }
 
     /*
@@ -118,7 +119,7 @@ int main() {
 
     std::vector<Scalar> x_t_analog;
     for (size_t i = 0; i < y_b_decoded.size(); i++) {
-        x_t_analog.push_back(y_b_decoded[i] * (a_max - a_min) / (2 << num_bits) + a_min);
+        x_t_analog.push_back(y_b_decoded[i] * (a_max - a_min) / (2 << (num_bits - 1)) + a_min);
     }
 
     utils::save_vector(time_t, "Time");
